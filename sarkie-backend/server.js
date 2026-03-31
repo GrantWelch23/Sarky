@@ -12,18 +12,19 @@ app.use(express.json());
 
 // PostgreSQL Connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    require: true,
-    rejectUnauthorized: false,  
-  },
+  host: process.env.DB_HOST || "localhost",
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "sarky_db",
+  ssl: false
 });
 
 pool.connect()
-  .then(() => console.log("Connected to PostgreSQL"))
+  .then(() => console.log("✅ Connected to PostgreSQL - sarky_db"))
   .catch(err => console.error("Database connection error:", err));
 
-
+// Root route
 app.get("/", (req, res) => {
   res.send("Backend is running!");
 });
@@ -43,5 +44,5 @@ app.use("/conversations", conversationRoutes);
 // Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(` Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
