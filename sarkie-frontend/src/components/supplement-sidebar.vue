@@ -80,7 +80,6 @@ export default {
       removeMode: false,
       selectedSupplementId: null,
       newSupplement: { name: "", dosage: "", frequency: "" },
-      // Attempt to read "user" from localStorage
       user: JSON.parse(localStorage.getItem("user")) || null,
     };
   },
@@ -267,9 +266,5 @@ li.removable {
 
 .cancel-btn {
   background: #565869;
-}
-
-.cancel-btn:hover {
-  background: #66677a;
 }
 </style>
