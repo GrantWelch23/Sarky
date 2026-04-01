@@ -5,6 +5,22 @@ const pool = require("../db");
 
 // Supplements API Routes
 
+// GET /supplements/report - MUST be before /:user_id to avoid conflicts
+const { SupplementHistoryReport } = require("../models/report");
+
+router.get("/report", async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    const result = await pool.query("SELECT * FROM supplements WHERE user_id = $1", [userId]);
+    
+    const report = new SupplementHistoryReport(result.rows);
+    res.json(report.generate());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate report" });
+  }
+});
+
 // create a supplement 
 router.post("/", async (req, res) => {
   console.log(" [SUPPLEMENT POST] Incoming Request:", req.body);

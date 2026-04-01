@@ -2,7 +2,6 @@
   <div class="health-portal">
     <!-- Keep title invisible for spacing -->
     <h1>Health Portal</h1>
-
     <div class="health-portal-layout">
       <section class="effects">
         <div class="effects-container">
@@ -20,7 +19,6 @@
             <p v-else class="default-text positive-text">
               You haven't logged any positive effects yet.
             </p>
-
             <div style="margin-top: auto; display: flex; gap: 10px;">
               <button
                 class="remove-effect-btn"
@@ -33,7 +31,6 @@
                 Log Positive Effect
               </button>
             </div>
-
             <div v-if="showPositiveForm" class="inline-form">
               <input
                 v-model="newPositiveEffect"
@@ -49,7 +46,6 @@
               </button>
             </div>
           </div>
-
           <div class="effects-box negative-effects">
             <ul v-if="userEffects.some(e => e.effect_type === 'negative')">
               <li
@@ -64,7 +60,6 @@
             <p v-else class="default-text negative-text">
               You haven't logged any side effects yet.
             </p>
-
             <div style="margin-top: auto; display: flex; gap: 10px;">
               <button
                 class="remove-effect-btn"
@@ -77,7 +72,6 @@
                 Log Side Effect
               </button>
             </div>
-
             <div v-if="showNegativeForm" class="inline-form">
               <input
                 v-model="newNegativeEffect"
@@ -96,9 +90,45 @@
         </div>
       </section>
 
+      <!-- Supplement History Report - OOP + multi-column/multi-row report -->
       <section class="coming-soon wellness">
-        <h2>Coming Soon: Wellness Metrics</h2>
-        <p>Track your Mood, Energy, and Anxiety over time.</p>
+        <div class="p-6 bg-white rounded-lg shadow">
+          <h2 class="text-2xl font-bold mb-1">{{ report.title }}</h2>
+          <p class="text-sm text-gray-500 mb-6">
+            Generated: {{ new Date(report.timestamp).toLocaleString() }}
+          </p>
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th
+                  v-for="col in report.columns"
+                  :key="col"
+                  class="border border-gray-300 px-4 py-3 text-left font-semibold"
+                >
+                  {{ col }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, i) in report.rows"
+                :key="i"
+                class="hover:bg-gray-50 border-b border-gray-200"
+              >
+                <td
+                  v-for="(cell, j) in row"
+                  :key="j"
+                  class="border border-gray-300 px-4 py-3"
+                >
+                  {{ cell }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="report.rows.length === 0" class="text-gray-400 mt-4 text-center">
+            No supplements added yet. Add some in the sidebar to see the report.
+          </p>
+        </div>
       </section>
 
       <section class="coming-soon sleep">
@@ -117,14 +147,20 @@ const user = JSON.parse(localStorage.getItem("user"));
 const userId = user ? user.id : null;
 
 const userEffects = ref([]);
-
 const showPositiveForm = ref(false);
 const showNegativeForm = ref(false);
 const newPositiveEffect = ref("");
 const newNegativeEffect = ref("");
-
 const isDeletingPositive = ref(false);
 const isDeletingNegative = ref(false);
+
+// NEW: Report data (OOP + multi-column report)
+const report = ref({
+  title: "Loading report...",
+  timestamp: new Date().toISOString(),
+  columns: [],
+  rows: []
+});
 
 const fetchEffectsData = async () => {
   if (!userId) {
@@ -137,6 +173,17 @@ const fetchEffectsData = async () => {
     userEffects.value = response.data;
   } catch (error) {
     console.error("Error fetching effects data:", error);
+  }
+};
+
+const fetchReport = async () => {
+  if (!userId) return;
+  try {
+    const res = await api.get(`/supplements/report?userId=${userId}`);
+    report.value = res.data;
+  } catch (err) {
+    console.error("Report load error:", err);
+    report.value.title = "Error loading report";
   }
 };
 
@@ -178,6 +225,7 @@ const cancelPositiveEffect = () => {
   newPositiveEffect.value = "";
   showPositiveForm.value = false;
 };
+
 const cancelNegativeEffect = () => {
   newNegativeEffect.value = "";
   showNegativeForm.value = false;
@@ -207,7 +255,11 @@ const deleteSingleEffect = async (effectId) => {
   }
 };
 
-onMounted(fetchEffectsData);
+// Load both effects and report when the page loads
+onMounted(() => {
+  fetchEffectsData();
+  fetchReport();
+});
 </script>
 
 <style scoped>
