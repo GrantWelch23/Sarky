@@ -38,13 +38,11 @@ const setPeriod = (newPeriod) => {
 
 const fetchChartData = async () => {
   if (!userId) {
-    console.warn('No user logged in');
     renderEmptyChart();
     return;
   }
 
   try {
-    console.log('Fetching chart data for userId:', userId, 'period:', period.value);
     const res = await api.get('/supplements/chart/usage-data', {
       params: { userId, period: period.value }
     });
@@ -136,14 +134,14 @@ const fetchChartData = async () => {
       }
     ];
 
-    renderChart(labels, datasets);
+    renderChart(labels, datasets, periods, { supplements, positive_effects, negative_effects });
   } catch (error) {
     console.error('Error fetching chart data:', error);
     renderEmptyChart();
   }
 };
 
-const renderChart = (labels, datasets) => {
+const renderChart = (labels, datasets, periods, rawData) => {
   if (chartInstance) {
     chartInstance.destroy();
   }
@@ -153,7 +151,14 @@ const renderChart = (labels, datasets) => {
     return;
   }
 
-  console.log('Creating chart with labels:', labels, 'datasets:', datasets);
+  const toDateStr = (val) => (val ? String(val).split('T')[0] : '');
+
+  // Maps dataset index to its raw rows and the field used as the item label.
+  const breakdownConfig = [
+    { rows: rawData.supplements,      key: 'name' },
+    { rows: rawData.positive_effects, key: 'effect_description' },
+    { rows: rawData.negative_effects, key: 'effect_description' },
+  ];
 
   chartInstance = new Chart(chartCanvas.value, {
     type: 'bar',
@@ -180,6 +185,18 @@ const renderChart = (labels, datasets) => {
         },
         title: {
           display: false
+        },
+        tooltip: {
+          callbacks: {
+            afterLabel: (context) => {
+              const config = breakdownConfig[context.datasetIndex];
+              if (!config) return [];
+              const p = periods[context.dataIndex];
+              const items = config.rows.filter(r => toDateStr(r.period) === p);
+              if (items.length === 0) return [];
+              return items.map(r => `  • ${r[config.key]}: ${r.count}`);
+            }
+          }
         }
       },
       scales: {
