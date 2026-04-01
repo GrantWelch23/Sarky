@@ -380,6 +380,11 @@ onMounted(() => {
 /* Expand "Coming Soon" Sections */
 .wellness {
   border-left: 8px solid blue;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* FINAL OVERRIDES to beat global li { ... }  */

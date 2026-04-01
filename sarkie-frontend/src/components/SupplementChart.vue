@@ -164,6 +164,9 @@ const renderChart = (labels, datasets) => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { right: 16 }
+      },
       plugins: {
         legend: {
           position: 'top',
@@ -249,7 +252,7 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 20px 60px 20px 20px;
   background: #e8e8e8;
   border-radius: 10px;
   box-sizing: border-box;
@@ -288,12 +291,11 @@ onMounted(() => {
   position: relative;
   width: 100%;
   max-height: 100%;
-  overflow: auto;
-  min-height: 300px;
+  overflow: hidden;
 }
 
 .chart-wrapper canvas {
   max-height: 100%;
-  min-width: 100%;
+  max-width: 100%;
 }
 </style>
