@@ -56,10 +56,22 @@ const fetchChartData = async () => {
     let periods = [];
     
     if (period.value === 'weekly') {
+      // PostgreSQL DATE_TRUNC('week', ...) returns the Monday of each week.
+      // We must generate the same Monday-anchored dates so period strings match.
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0=Sunday, 1=Monday, ...
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const thisMonday = new Date(today);
+      thisMonday.setDate(today.getDate() + daysToMonday);
+      thisMonday.setHours(0, 0, 0, 0);
+
       for (let i = 3; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - (i * 7));
-        periods.push(new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().split('T')[0]);
+        const date = new Date(thisMonday);
+        date.setDate(thisMonday.getDate() - (i * 7));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        periods.push(`${year}-${month}-${day}`);
       }
     } else {
       for (let i = 3; i >= 0; i--) {
@@ -82,22 +94,20 @@ const fetchChartData = async () => {
 
     const labels = periods.map(labelFormatter);
 
-    // Calculate total supplements per period
+    // node-postgres serializes DATE columns as full ISO timestamps (e.g. "2026-03-30T05:00:00Z").
+    // Normalise to "YYYY-MM-DD" before comparing, and parseInt COUNT(*) strings.
+    const toDateStr = (val) => (val ? String(val).split('T')[0] : '');
+
     const supplementsTotals = periods.map(p => {
-      const total = supplements.filter(s => s.period === p).reduce((sum, s) => sum + s.count, 0);
-      return total;
+      return supplements.filter(s => toDateStr(s.period) === p).reduce((sum, s) => sum + parseInt(s.count, 10), 0);
     });
 
-    // Calculate total positive effects per period
     const positiveEffectsTotals = periods.map(p => {
-      const total = positive_effects.filter(e => e.period === p).reduce((sum, e) => sum + e.count, 0);
-      return total;
+      return positive_effects.filter(e => toDateStr(e.period) === p).reduce((sum, e) => sum + parseInt(e.count, 10), 0);
     });
 
-    // Calculate total negative effects per period
     const negativeEffectsTotals = periods.map(p => {
-      const total = negative_effects.filter(e => e.period === p).reduce((sum, e) => sum + e.count, 0);
-      return total;
+      return negative_effects.filter(e => toDateStr(e.period) === p).reduce((sum, e) => sum + parseInt(e.count, 10), 0);
     });
 
     console.log('Totals - supplements:', supplementsTotals, 'positive:', positiveEffectsTotals, 'negative:', negativeEffectsTotals);

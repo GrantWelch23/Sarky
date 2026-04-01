@@ -199,13 +199,13 @@ router.get('/chart/usage-data', async (req, res) => {
     if (period === 'weekly') {
       supplementQuery = `
         SELECT 
-          DATE_TRUNC('week', created_at)::DATE as period,
+          DATE_TRUNC('week', COALESCE(created_at, NOW()))::DATE as period,
           name,
           COUNT(*) as count
         FROM supplements
-        WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '4 weeks'
-        GROUP BY DATE_TRUNC('week', created_at)::DATE, name
-        ORDER BY DATE_TRUNC('week', created_at)::DATE, name;
+        WHERE user_id = $1
+        GROUP BY DATE_TRUNC('week', COALESCE(created_at, NOW()))::DATE, name
+        ORDER BY DATE_TRUNC('week', COALESCE(created_at, NOW()))::DATE, name;
       `;
 
       positiveEffectsQuery = `
@@ -214,7 +214,7 @@ router.get('/chart/usage-data', async (req, res) => {
           effect_description,
           COUNT(*) as count
         FROM supplement_effects
-        WHERE user_id = $1 AND effect_type = 'positive' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 weeks'
+        WHERE user_id = $1 AND effect_type = 'positive'
         GROUP BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description
         ORDER BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description;
       `;
@@ -225,20 +225,20 @@ router.get('/chart/usage-data', async (req, res) => {
           effect_description,
           COUNT(*) as count
         FROM supplement_effects
-        WHERE user_id = $1 AND effect_type = 'negative' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 weeks'
+        WHERE user_id = $1 AND effect_type = 'negative'
         GROUP BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description
         ORDER BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description;
       `;
     } else {
       supplementQuery = `
         SELECT 
-          DATE_TRUNC('month', created_at)::DATE as period,
+          DATE_TRUNC('month', COALESCE(created_at, NOW()))::DATE as period,
           name,
           COUNT(*) as count
         FROM supplements
-        WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '4 months'
-        GROUP BY DATE_TRUNC('month', created_at)::DATE, name
-        ORDER BY DATE_TRUNC('month', created_at)::DATE, name;
+        WHERE user_id = $1
+        GROUP BY DATE_TRUNC('month', COALESCE(created_at, NOW()))::DATE, name
+        ORDER BY DATE_TRUNC('month', COALESCE(created_at, NOW()))::DATE, name;
       `;
 
       positiveEffectsQuery = `
@@ -247,7 +247,7 @@ router.get('/chart/usage-data', async (req, res) => {
           effect_description,
           COUNT(*) as count
         FROM supplement_effects
-        WHERE user_id = $1 AND effect_type = 'positive' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 months'
+        WHERE user_id = $1 AND effect_type = 'positive'
         GROUP BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description
         ORDER BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description;
       `;
@@ -258,7 +258,7 @@ router.get('/chart/usage-data', async (req, res) => {
           effect_description,
           COUNT(*) as count
         FROM supplement_effects
-        WHERE user_id = $1 AND effect_type = 'negative' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 months'
+        WHERE user_id = $1 AND effect_type = 'negative'
         GROUP BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description
         ORDER BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description;
       `;
