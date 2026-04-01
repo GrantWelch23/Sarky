@@ -180,4 +180,107 @@ router.get('/user-effects/:user_id', async (req, res) => {
   }
 });
 
+// Chart data endpoint - aggregates supplement, positive effects, and negative effects
+router.get('/chart/usage-data', async (req, res) => {
+  const { userId, period } = req.query;
+  
+  if (!userId || !period) {
+    return res.status(400).json({ error: "userId and period are required" });
+  }
+
+  try {
+    // Ensure created_at column exists
+    await pool.query(
+      `ALTER TABLE supplements ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`
+    );
+
+    let supplementQuery, positiveEffectsQuery, negativeEffectsQuery;
+    
+    if (period === 'weekly') {
+      supplementQuery = `
+        SELECT 
+          DATE_TRUNC('week', created_at)::DATE as period,
+          name,
+          COUNT(*) as count
+        FROM supplements
+        WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '4 weeks'
+        GROUP BY DATE_TRUNC('week', created_at)::DATE, name
+        ORDER BY DATE_TRUNC('week', created_at)::DATE, name;
+      `;
+
+      positiveEffectsQuery = `
+        SELECT 
+          DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE as period,
+          effect_description,
+          COUNT(*) as count
+        FROM supplement_effects
+        WHERE user_id = $1 AND effect_type = 'positive' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 weeks'
+        GROUP BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description
+        ORDER BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description;
+      `;
+
+      negativeEffectsQuery = `
+        SELECT 
+          DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE as period,
+          effect_description,
+          COUNT(*) as count
+        FROM supplement_effects
+        WHERE user_id = $1 AND effect_type = 'negative' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 weeks'
+        GROUP BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description
+        ORDER BY DATE_TRUNC('week', COALESCE(timestamp, NOW()))::DATE, effect_description;
+      `;
+    } else {
+      supplementQuery = `
+        SELECT 
+          DATE_TRUNC('month', created_at)::DATE as period,
+          name,
+          COUNT(*) as count
+        FROM supplements
+        WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '4 months'
+        GROUP BY DATE_TRUNC('month', created_at)::DATE, name
+        ORDER BY DATE_TRUNC('month', created_at)::DATE, name;
+      `;
+
+      positiveEffectsQuery = `
+        SELECT 
+          DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE as period,
+          effect_description,
+          COUNT(*) as count
+        FROM supplement_effects
+        WHERE user_id = $1 AND effect_type = 'positive' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 months'
+        GROUP BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description
+        ORDER BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description;
+      `;
+
+      negativeEffectsQuery = `
+        SELECT 
+          DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE as period,
+          effect_description,
+          COUNT(*) as count
+        FROM supplement_effects
+        WHERE user_id = $1 AND effect_type = 'negative' AND COALESCE(timestamp, NOW()) >= CURRENT_DATE - INTERVAL '4 months'
+        GROUP BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description
+        ORDER BY DATE_TRUNC('month', COALESCE(timestamp, NOW()))::DATE, effect_description;
+      `;
+    }
+
+    const [supplementRes, positiveRes, negativeRes] = await Promise.all([
+      pool.query(supplementQuery, [userId]),
+      pool.query(positiveEffectsQuery, [userId]),
+      pool.query(negativeEffectsQuery, [userId])
+    ]);
+
+    console.log('Chart data - supplements:', supplementRes.rows.length, 'positive:', positiveRes.rows.length, 'negative:', negativeRes.rows.length);
+
+    res.json({
+      supplements: supplementRes.rows,
+      positive_effects: positiveRes.rows,
+      negative_effects: negativeRes.rows
+    });
+  } catch (error) {
+    console.error("Error fetching chart data:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

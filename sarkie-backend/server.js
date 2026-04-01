@@ -34,12 +34,14 @@ const authRoutes = require("./routes/auth");
 const chatRoutes = require("./routes/chat");
 const supplementRoutes = require("./routes/supplements");
 const conversationRoutes = require("./routes/conversation");
+const moodRoutes = require("./routes/mood");
 
 // Use Route Files
 app.use("/auth", authRoutes);
 app.use("/chat", chatRoutes);
 app.use("/supplements", supplementRoutes);
 app.use("/conversations", conversationRoutes);
+app.use("/mood", moodRoutes);
 
 // Start the Server
 const PORT = process.env.PORT || 5000;

@@ -90,57 +90,19 @@
         </div>
       </section>
 
-      <!-- Supplement History Report - OOP + multi-column/multi-row report -->
-      <section class="coming-soon wellness">
-        <div class="p-6 bg-white rounded-lg shadow">
-          <h2 class="text-2xl font-bold mb-1">{{ report.title }}</h2>
-          <p class="text-sm text-gray-500 mb-6">
-            Generated: {{ new Date(report.timestamp).toLocaleString() }}
-          </p>
-          <table class="w-full border-collapse text-sm">
-            <thead>
-              <tr class="bg-gray-100">
-                <th
-                  v-for="col in report.columns"
-                  :key="col"
-                  class="border border-gray-300 px-4 py-3 text-left font-semibold"
-                >
-                  {{ col }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(row, i) in report.rows"
-                :key="i"
-                class="hover:bg-gray-50 border-b border-gray-200"
-              >
-                <td
-                  v-for="(cell, j) in row"
-                  :key="j"
-                  class="border border-gray-300 px-4 py-3"
-                >
-                  {{ cell }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p v-if="report.rows.length === 0" class="text-gray-400 mt-4 text-center">
-            No supplements added yet. Add some in the sidebar to see the report.
-          </p>
-        </div>
+      <!-- Supplement Usage Chart -->
+      <section class="wellness">
+        <SupplementChart />
       </section>
 
-      <section class="coming-soon sleep">
-        <h2>Coming Soon: Sleep Tracking</h2>
-        <p>Monitor your sleep quality and trends.</p>
-      </section>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
+import SupplementChart from "../components/SupplementChart.vue";
 import { api } from "../Services/api";
 
 const user = JSON.parse(localStorage.getItem("user"));
@@ -154,14 +116,6 @@ const newNegativeEffect = ref("");
 const isDeletingPositive = ref(false);
 const isDeletingNegative = ref(false);
 
-// NEW: Report data (OOP + multi-column report)
-const report = ref({
-  title: "Loading report...",
-  timestamp: new Date().toISOString(),
-  columns: [],
-  rows: []
-});
-
 const fetchEffectsData = async () => {
   if (!userId) {
     console.warn(" No user logged in.");
@@ -173,17 +127,6 @@ const fetchEffectsData = async () => {
     userEffects.value = response.data;
   } catch (error) {
     console.error("Error fetching effects data:", error);
-  }
-};
-
-const fetchReport = async () => {
-  if (!userId) return;
-  try {
-    const res = await api.get(`/supplements/report?userId=${userId}`);
-    report.value = res.data;
-  } catch (err) {
-    console.error("Report load error:", err);
-    report.value.title = "Error loading report";
   }
 };
 
@@ -255,10 +198,9 @@ const deleteSingleEffect = async (effectId) => {
   }
 };
 
-// Load both effects and report when the page loads
+// Load effects when the page loads
 onMounted(() => {
   fetchEffectsData();
-  fetchReport();
 });
 </script>
 
@@ -288,7 +230,7 @@ onMounted(() => {
 .health-portal-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr;
   gap: 15px;
   width: 98vw;
   height: 82vh;
@@ -425,7 +367,7 @@ onMounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: #ffffff;
+  background: #e8e8e8;
   border-radius: 10px;
   padding: 40px;
   height: 100%;
@@ -438,10 +380,6 @@ onMounted(() => {
 /* Expand "Coming Soon" Sections */
 .wellness {
   border-left: 8px solid blue;
-}
-.sleep {
-  grid-column: span 2;
-  border-left: 8px solid purple;
 }
 
 /* FINAL OVERRIDES to beat global li { ... }  */
