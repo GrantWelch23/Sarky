@@ -18,6 +18,7 @@
             </ul>
             <p v-else class="default-text positive-text">
               You haven't logged any positive effects yet.
+              
             </p>
             <div style="margin-top: auto; display: flex; gap: 10px;">
               <button
@@ -95,11 +96,6 @@
         <SupplementChart />
       </section>
 
-      <!-- Supplement Activity Report -->
-      <section class="report">
-        <SupplementReport />
-      </section>
-
 
     </div>
   </div>
@@ -108,7 +104,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import SupplementChart from "../components/SupplementChart.vue";
-import SupplementReport from "../components/SupplementReport.vue";
 import { api } from "../Services/api";
 
 const user = JSON.parse(localStorage.getItem("user"));
@@ -213,7 +208,7 @@ onMounted(() => {
 <style scoped>
 /* Full Page Layout */
 .health-portal {
-  width: 100%;
+  width: 100vw;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -222,7 +217,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   height: 97vh;
-  overflow: hidden;
+  overflow: hidden; /* ensures no scrolling */
 }
 
 /* Make "Health Portal" invisible but keep layout spacing */
@@ -235,35 +230,11 @@ onMounted(() => {
 /* Expands to Full Width & Height */
 .health-portal-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
   gap: 15px;
-  width: 98%;
+  width: 98vw;
   height: 82vh;
-  box-sizing: border-box;
-}
-
-.effects {
-  grid-column: 1;
-  grid-row: 1;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.report {
-  grid-column: 1;
-  grid-row: 2;
-  min-height: 0;
-  min-width: 0;
-}
-
-.wellness {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
 }
 
@@ -408,6 +379,13 @@ onMounted(() => {
 }
 
 /* Expand "Coming Soon" Sections */
+.wellness {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
 
 /* FINAL OVERRIDES to beat global li { ... }  */
 .effects-box ul {
