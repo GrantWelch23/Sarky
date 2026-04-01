@@ -43,6 +43,30 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Search conversation history for a user
+router.get("/search", async (req, res) => {
+  try {
+    const { user_id, query } = req.query;
+
+    if (!user_id || !query) {
+      return res.status(400).json({ error: "Missing user_id or query" });
+    }
+
+    const results = await pool.query(
+      `SELECT id, message, sender, timestamp
+       FROM conversations
+       WHERE user_id = $1 AND message ILIKE $2
+       ORDER BY timestamp ASC`,
+      [user_id, `%${query}%`]
+    );
+
+    res.json(results.rows);
+  } catch (err) {
+    console.error("Error searching conversations:", err);
+    res.status(500).send("Server error");
+  }
+});
+
 // Retrieve conversation history for a user
 router.get("/:user_id", async (req, res) => {
   try {

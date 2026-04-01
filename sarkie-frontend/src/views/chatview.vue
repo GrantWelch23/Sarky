@@ -11,7 +11,6 @@
         <!-- AI (SARK) Messages -->
         <div v-if="message.sender === 'sark'" class="sark">
           <img class="sark-avatar" src="/images/sark-avatar1.png" alt="SARK Avatar" />
-          <!-- If it's a placeholder (thinking), italicize the text -->
           <p v-if="message.placeholder" class="sark-text">
             <em>{{ message.text }}</em>
           </p>
@@ -49,6 +48,49 @@
           @keyup.enter="sendMessage"
         />
         <button @click="sendMessage">Send</button>
+        <button class="search-btn" @click="openSearch" title="Search chat history">🔍</button>
+      </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div v-if="searchOpen" class="search-overlay" @click.self="closeSearch">
+      <div class="search-modal">
+        <div class="search-modal-header">
+          <h3>Search Chat History</h3>
+          <button class="close-btn" @click="closeSearch">✕</button>
+        </div>
+
+        <div class="search-input-row">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search messages..."
+            @keyup.enter="runSearch"
+            ref="searchInput"
+            class="search-field"
+          />
+          <button class="search-go-btn" @click="runSearch">Search</button>
+        </div>
+
+        <!-- Results -->
+        <div class="search-results">
+          <p v-if="searchLoading" class="search-status">Searching...</p>
+          <p v-else-if="searchDone && searchResults.length === 0" class="search-status">No results found.</p>
+
+          <div
+            v-for="result in searchResults"
+            :key="result.id"
+            class="search-result-row"
+          >
+            <div class="result-meta">
+              <span class="result-sender" :class="result.sender === 'ai' ? 'sender-ai' : 'sender-user'">
+                {{ result.sender === 'ai' ? 'SARK' : 'You' }}
+              </span>
+              <span class="result-time">{{ formatTimestamp(result.timestamp) }}</span>
+            </div>
+            <p class="result-message" v-html="highlight(result.message, searchQuery)"></p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -69,6 +111,11 @@ export default {
         },
       ],
       user: JSON.parse(localStorage.getItem("user")) || null,
+      searchOpen: false,
+      searchQuery: "",
+      searchResults: [],
+      searchLoading: false,
+      searchDone: false,
     };
   },
   methods: {
@@ -115,16 +162,13 @@ export default {
           user_id: userId,
         });
 
-        // Log the entire response to debug the structure
         console.log("Full response from AI endpoint:", response);
 
-        // Fallback in case the API returns 'message' or some other field
         aiReply = response.data?.reply || response.data?.message || null;
         if (!aiReply) {
           throw new Error("Invalid AI response format - no 'reply' or 'message' field found.");
         }
       } catch (error) {
-        // If the AI request fails, remove the placeholder and show error text
         console.error("Error receiving AI response:", error);
         this.messages.splice(placeholderIndex, 1);
         this.messages.push({
@@ -150,6 +194,52 @@ export default {
       } catch (error) {
         console.error("Error saving AI response:", error);
       }
+    },
+
+    openSearch() {
+      this.searchOpen = true;
+      this.searchQuery = "";
+      this.searchResults = [];
+      this.searchDone = false;
+      this.$nextTick(() => this.$refs.searchInput?.focus());
+    },
+
+    closeSearch() {
+      this.searchOpen = false;
+    },
+
+    async runSearch() {
+      if (!this.searchQuery.trim()) return;
+      const userId = this.user ? this.user.id : null;
+      if (!userId) return;
+
+      this.searchLoading = true;
+      this.searchDone = false;
+      this.searchResults = [];
+
+      try {
+        const response = await api.get("/conversations/search", {
+          params: { user_id: userId, query: this.searchQuery.trim() },
+        });
+        this.searchResults = response.data;
+      } catch (error) {
+        console.error("Search error:", error);
+        this.searchResults = [];
+      } finally {
+        this.searchLoading = false;
+        this.searchDone = true;
+      }
+    },
+
+    highlight(text, query) {
+      if (!query) return text;
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
+    },
+
+    formatTimestamp(ts) {
+      if (!ts) return "";
+      return new Date(ts).toLocaleString();
     },
   },
 };
@@ -254,5 +344,172 @@ export default {
   .chat-input button:hover {
     background: #0056b3;
   }
-  </style>
+
+  .search-btn {
+    margin-left: 8px;
+    padding: 10px 12px;
+    border: none;
+    background: #565869;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+
+  .search-btn:hover {
+    background: #6e7082;
+  }
+
+  /* Search Modal Overlay */
+  .search-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-modal {
+    background: #343541;
+    border: 1px solid #565869;
+    border-radius: 10px;
+    width: 680px;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .search-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #565869;
+  }
+
+  .search-modal-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  .close-btn:hover {
+    color: white;
+  }
+
+  .search-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #565869;
+  }
+
+  .search-field {
+    flex: 1;
+    padding: 10px 12px;
+    background: #40414f;
+    border: 1px solid #565869;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.95rem;
+  }
+
+  .search-field:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+
+  .search-go-btn {
+    padding: 10px 18px;
+    background: #007bff;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .search-go-btn:hover {
+    background: #0056b3;
+  }
+
+  /* Results List */
+  .search-results {
+    overflow-y: auto;
+    padding: 10px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-status {
+    color: #aaa;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.9rem;
+  }
+
+  .search-result-row {
+    background: #40414f;
+    border: 1px solid #565869;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .result-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .result-sender {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .sender-ai {
+    background: #1a4a6e;
+    color: #7ec8f0;
+  }
+
+  .sender-user {
+    background: #2e4a2e;
+    color: #7ee87e;
+  }
+
+  .result-time {
+    font-size: 0.75rem;
+    color: #888;
+  }
+
+  .result-message {
+    color: #ddd;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .result-message mark {
+    background: #f0c040;
+    color: #000;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+</style>
   
