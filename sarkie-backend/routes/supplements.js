@@ -66,6 +66,32 @@ router.get("/:user_id", async (req, res) => {
   }
 });
 
+// Update a supplement
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, dosage, frequency } = req.body;
+
+    if (!name || !dosage || !frequency) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await pool.query(
+      "UPDATE supplements SET name = $1, dosage = $2, frequency = $3 WHERE id = $4 RETURNING *",
+      [name, dosage, frequency, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Supplement not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating supplement:", err);
+    res.status(500).send("Server error");
+  }
+});
+
 // Delete a supplement
 router.delete("/:id", async (req, res) => {
   try {

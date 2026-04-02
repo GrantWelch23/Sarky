@@ -9,8 +9,8 @@
         <li
           v-for="supplement in supplements"
           :key="supplement.id"
-          @click="selectSupplementToRemove(supplement.id)"
-          :class="{ removable: removeMode }"
+          @click="selectSupplement(supplement)"
+          :class="{ removable: removeMode, editable: editMode }"
         >
           <span>{{ supplement.name }} - {{ supplement.dosage }} ({{ supplement.frequency }})</span>
         </li>
@@ -53,6 +53,18 @@
         <button @click="confirmDelete" class="confirm-btn">Yes</button>
         <button @click="showRemoveConfirm = false" class="cancel-btn">No</button>
       </div>
+
+      <button @click="toggleEditMode" class="toggle-btn edit-btn">
+        {{ editMode ? "Cancel Edit" : "Edit Supplement" }}
+      </button>
+
+      <div v-if="showEditForm" class="inline-form">
+        <input v-model="editData.name" type="text" placeholder="Supplement Name" class="input-field" />
+        <input v-model="editData.dosage" type="text" placeholder="Dosage (e.g., 500mg)" class="input-field" />
+        <input v-model="editData.frequency" type="text" placeholder="Frequency (e.g., Daily)" class="input-field" />
+        <button @click="saveEdit" class="confirm-btn">Save</button>
+        <button @click="showEditForm = false" class="cancel-btn">Cancel</button>
+      </div>
     </div>
 
     <!-- If user is NOT logged in -->
@@ -78,7 +90,10 @@ export default {
       showAddForm: false,
       showRemoveConfirm: false,
       removeMode: false,
+      editMode: false,
+      showEditForm: false,
       selectedSupplementId: null,
+      editData: { name: "", dosage: "", frequency: "" },
       newSupplement: { name: "", dosage: "", frequency: "" },
       user: JSON.parse(localStorage.getItem("user")) || null,
     };
@@ -118,11 +133,32 @@ export default {
     },
     toggleRemoveMode() {
       this.removeMode = !this.removeMode;
+      if (this.removeMode) this.editMode = false;
     },
-    selectSupplementToRemove(supplementId) {
+    selectSupplement(supplement) {
       if (this.removeMode) {
-        this.selectedSupplementId = supplementId;
+        this.selectedSupplementId = supplement.id;
         this.showRemoveConfirm = true;
+      } else if (this.editMode) {
+        this.selectedSupplementId = supplement.id;
+        this.editData = { name: supplement.name, dosage: supplement.dosage, frequency: supplement.frequency };
+        this.showEditForm = true;
+      }
+    },
+    toggleEditMode() {
+      this.editMode = !this.editMode;
+      this.showEditForm = false;
+      if (this.editMode) this.removeMode = false;
+    },
+    async saveEdit() {
+      try {
+        const response = await api.put(`/supplements/${this.selectedSupplementId}`, this.editData);
+        const idx = this.supplements.findIndex(s => s.id === this.selectedSupplementId);
+        if (idx !== -1) this.supplements[idx] = response.data;
+        this.showEditForm = false;
+        this.editMode = false;
+      } catch (error) {
+        console.error("Error updating supplement:", error);
       }
     },
     async confirmDelete() {
@@ -189,6 +225,12 @@ li span {
 
 li.removable {
   background: #ff4d4d;
+  cursor: pointer;
+}
+
+li.editable {
+  background: #4daf4d;
+  cursor: pointer;
 }
 
 .toggle-btn {
@@ -213,6 +255,14 @@ li.removable {
 
 .remove-btn:hover {
   background: #cc0000;
+}
+
+.edit-btn {
+  background: #4daf4d;
+}
+
+.edit-btn:hover {
+  background: #3d963d;
 }
 
 .inline-form {
