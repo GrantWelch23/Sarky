@@ -145,11 +145,21 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "All fields are required." });
     }
 
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+
     // Check if user already exists
     const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
 
     if (userExists.rowCount > 0) {
-      return res.status(400).json({ error: "User already exists. Please log in." });
+      const existingUser = userExists.rows[0];
+      if (existingUser.verified) {
+        return res.status(400).json({ error: "User already exists. Please log in." });
+      }
+      // Unverified user — delete stale record and allow re-registration
+      await pool.query("DELETE FROM users WHERE email = $1", [email]);
+      await pool.query("DELETE FROM verification_codes WHERE email = $1", [email]);
     }
 
     // Hash the password before storing

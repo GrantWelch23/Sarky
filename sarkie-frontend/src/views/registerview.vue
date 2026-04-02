@@ -17,6 +17,13 @@
         <div class="input-group">
           <label for="password">Password</label>
           <input v-model="password" type="password" id="password" required />
+          <p v-if="passwordError" class="field-error">{{ passwordError }}</p>
+        </div>
+
+        <div class="input-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input v-model="confirmPassword" type="password" id="confirmPassword" required />
+          <p v-if="confirmError" class="field-error">{{ confirmError }}</p>
         </div>
 
         <button type="submit" class="register-btn">Register</button>
@@ -42,11 +49,34 @@ export default {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       errorMessage: "",
+      passwordError: "",
+      confirmError: "",
     };
   },
   methods: {
+    validate() {
+      this.passwordError = "";
+      this.confirmError = "";
+      let valid = true;
+
+      if (this.password.length < 8) {
+        this.passwordError = "Password must be at least 8 characters.";
+        valid = false;
+      }
+
+      if (this.password !== this.confirmPassword) {
+        this.confirmError = "Passwords do not match.";
+        valid = false;
+      }
+
+      return valid;
+    },
+
     async handleRegister() {
+      if (!this.validate()) return;
+
       try {
         console.log("🔹 Attempting registration...");
 
@@ -178,6 +208,12 @@ export default {
   .error-message {
     color: red;
     margin-top: 10px;
+  }
+
+  .field-error {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    margin-top: 4px;
   }
   </style>
   
