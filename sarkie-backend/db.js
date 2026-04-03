@@ -1,6 +1,8 @@
 require("dotenv").config();
 const { Pool } = require("pg");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // PostgreSQL Connection - using your custom port 1234
 const pool = new Pool({
   host: process.env.DB_HOST || "localhost",
@@ -8,7 +10,7 @@ const pool = new Pool({
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || "sarky_db",
-  ssl: false
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
 });
 
 pool.connect()
