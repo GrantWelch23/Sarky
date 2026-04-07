@@ -3,7 +3,6 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const { Pool } = require("pg");
 
 // Initialize Express App
 const app = express();
@@ -28,20 +27,6 @@ const authLimiter = rateLimit({
 app.use(generalLimiter);
 app.use(cors());
 app.use(express.json());
-
-// PostgreSQL Connection
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || "sarky_db",
-  ssl: false
-});
-
-pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL - sarky_db"))
-  .catch(err => console.error("Database connection error:", err));
 
 // Root route
 app.get("/", (req, res) => {
